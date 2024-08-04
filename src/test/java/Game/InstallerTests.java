@@ -81,6 +81,32 @@ public class InstallerTests {
     }
 
     @Test
+    public void testLogToFileWithHamcrest() throws IOException {
+        Installer.createDir(TEST_INSTALL_PATH);
+        Installer.createDir(TEST_INSTALL_PATH + "\\temp");
+        Installer.createFile(TEST_FILE_PATH);
+        String testMessage = "Тестовое сообщение";
+        Installer.log(testMessage);
+        Installer.logToFile(Installer.log, TEST_FILE_PATH);
+
+        File file = new File(TEST_FILE_PATH);
+        assertThat(file.exists(), is(true));
+        assertThat(file.length(), greaterThan(0L));
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(TEST_FILE_PATH))) {
+            String line;
+            boolean found = false;
+            while ((line = reader.readLine())!= null) {
+                if (line.contains(testMessage)) {
+                    found = true;
+                    break;
+                }
+            }
+            assertThat(found, is(true));
+        }
+    }
+
+    @Test
     public void testLog() {
         String testMessage = "Тестовое сообщение";
         Installer.log(testMessage);
