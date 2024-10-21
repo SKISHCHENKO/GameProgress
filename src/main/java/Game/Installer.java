@@ -1,19 +1,33 @@
 package Game;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Installer {
 
-    static String installPath = "D:\\Games";
-    static StringBuilder log = new StringBuilder();
+    static final String installPath = "D:\\Games";
+    static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
+        try {
+            installStructure();
+        } catch (IOException e) {
+            System.err.println("Ошибка установки: " + e.getMessage());
+        }
+    }
 
+    public static void installStructure() throws IOException {
         createDir(installPath);
+        createDirectories();
+        createFiles();
+    }
+
+    private static void createDirectories() {
         createDir(installPath + "\\src");
         createDir(installPath + "\\res");
         createDir(installPath + "\\savegames");
@@ -22,55 +36,52 @@ public class Installer {
         createDir(installPath + "\\src\\main");
         createDir(installPath + "\\src\\test");
 
-        createFile(installPath + "\\src\\main\\Main.java");
-        createFile(installPath + "\\src\\main\\Utils.java");
-
         createDir(installPath + "\\res\\drawables");
         createDir(installPath + "\\res\\vectors");
         createDir(installPath + "\\res\\icons");
+    }
 
+    private static void createFiles() {
+        createFile(installPath + "\\src\\main\\Main.java");
+        createFile(installPath + "\\src\\main\\Utils.java");
         createFile(installPath + "\\temp\\tmp.txt");
-
-        logToFile(log,installPath + "\\temp\\tmp.txt");
     }
 
     public static void createDir(String dirPath) {
-        File dir = new File(dirPath);
-        if (dir.exists()) {
-            log("Папка: " + dirPath + " уже существует!");
-        } else if (dir.mkdir()) {
-            log("Создана папка: " + dirPath);
-        } else {
-            log("Не удалось создать папку: " + dirPath);
+        Path path = Paths.get(dirPath);
+        try {
+            if (Files.notExists(path)) {
+                Files.createDirectories(path);
+                log("Создана папка: " + dirPath);
+            } else {
+                log("Папка: " + dirPath + " уже существует!");
+            }
+        } catch (IOException e) {
+            log("Не удалось создать папку: " + dirPath + " - " + e.getMessage());
         }
     }
 
     public static void createFile(String filePath) {
-        File file = new File(filePath);
+        Path path = Paths.get(filePath);
         try {
-            if (file.createNewFile()) {
+            if (Files.notExists(path)) {
+                Files.createFile(path);
                 log("Создан файл: " + filePath);
             } else {
-                log("Не удалось создать файл: " + filePath);
+                log("Файл: " + filePath + " уже существует!");
             }
         } catch (IOException e) {
-            log("Ошибка при создании файла: " + filePath);
-            e.printStackTrace();
-        }
-    }
-
-    public static void logToFile(StringBuilder msg, String fileName) {
-        try (FileWriter logWriter = new FileWriter(fileName, true)) {
-            logWriter.write(msg.toString()+"\n");
-        } catch (IOException e) {
-            System.err.println("Ошибка при записи лога: " + e.getMessage());
+            log("Ошибка при создании файла: " + filePath + " - " + e.getMessage());
         }
     }
 
     public static void log(String msg) {
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
-        LocalDateTime now = LocalDateTime.now();
-        System.out.println("[" + dtf.format(now) + "] <" + msg + ">");
-        log.append("[").append(dtf.format(now)).append("] <").append(msg).append(">").append("\n");
+        try (FileWriter logWriter = new FileWriter(installPath + "\\temp\\installer.log", true)) {
+            String logMsg = "[" + DATE_FORMAT.format(LocalDateTime.now()) + "] <" + msg + ">\n";
+            logWriter.write(logMsg);
+            System.out.println(logMsg);
+        } catch (IOException e) {
+            System.err.println("Ошибка при записи лога: " + e.getMessage());
+        }
     }
 }

@@ -26,38 +26,45 @@ public class Saving {
         List<String> pathFiles = Arrays.asList(filePath1, filePath2, filePath3);
 
         zipFiles(savingPath + "\\save.zip", pathFiles);
-
     }
 
     public static void saveGame(String path, GameProgress gameProgress) {
         try (FileOutputStream fos = new FileOutputStream(path);
              ObjectOutputStream oos = new ObjectOutputStream(fos)) {
             oos.writeObject(gameProgress);
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
+        } catch (IOException ex) {
+            System.err.println("Ошибка при сохранении игры: " + ex.getMessage());
         }
     }
 
     public static void zipFiles(String pathZip, List<String> pathFiles) {
-        try (ZipOutputStream zout = new ZipOutputStream(new FileOutputStream(pathZip))) {
+        try (ZipOutputStream zout = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(pathZip)))) {
             for (String pathFile : pathFiles) {
-                try (FileInputStream fis = new FileInputStream(pathFile)) {
-                    String fileName = new File(pathFile).getName();
-                    ZipEntry entry = new ZipEntry(fileName);
+                File fileToZip = new File(pathFile);
+                try (BufferedInputStream fis = new BufferedInputStream(new FileInputStream(fileToZip))) {
+                    ZipEntry entry = new ZipEntry(fileToZip.getName());
                     zout.putNextEntry(entry);
 
-                    byte[] buffer = new byte[fis.available()];
-                    fis.read(buffer);
-                    zout.write(buffer);
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = fis.read(buffer)) > 0) {
+                        zout.write(buffer, 0, length);
+                    }
                     zout.closeEntry();
+                } catch (IOException ex) {
+                    System.err.println("Ошибка при добавлении файла в архив: " + pathFile + " - " + ex.getMessage());
                 }
             }
+
+            // Удаление файлов после архивирования
             for (String pathFile : pathFiles) {
-                new File(pathFile).delete();
+                File fileToDelete = new File(pathFile);
+                if (!fileToDelete.delete()) {
+                    System.err.println("Не удалось удалить файл: " + pathFile);
+                }
             }
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
+        } catch (IOException ex) {
+            System.err.println("Ошибка при создании архива: " + ex.getMessage());
         }
     }
-
 }

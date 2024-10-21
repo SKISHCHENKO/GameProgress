@@ -1,8 +1,6 @@
 package Game;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -26,21 +24,26 @@ public class Loading {
     }
 
     public static void openZip(String pathZip, String pathFiles) {
-        try (ZipInputStream zin = new ZipInputStream(new FileInputStream(pathZip))) {
+        try (ZipInputStream zin = new ZipInputStream(new BufferedInputStream(new FileInputStream(pathZip)))) {
             ZipEntry entry;
-            String name;
             while ((entry = zin.getNextEntry()) != null) {
-                name = pathFiles + "\\" + entry.getName();
-                FileOutputStream fout = new FileOutputStream(name);
-                for (int c = zin.read(); c != -1; c = zin.read()) {
-                    fout.write(c);
+                String fileName = pathFiles + "\\" + entry.getName();
+                try (FileOutputStream fout = new FileOutputStream(fileName);
+                     BufferedOutputStream bos = new BufferedOutputStream(fout)) {
+
+                    byte[] buffer = new byte[1024];
+                    int len;
+                    while ((len = zin.read(buffer)) > 0) {
+                        bos.write(buffer, 0, len);
+                    }
+
+                    zin.closeEntry();
+                } catch (IOException ex) {
+                    System.err.println("Ошибка при извлечении файла: " + fileName + " - " + ex.getMessage());
                 }
-                fout.flush();
-                zin.closeEntry();
-                fout.close();
             }
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
+        } catch (IOException ex) {
+            System.err.println("Ошибка при работе с архивом: " + ex.getMessage());
         }
     }
 
@@ -49,11 +52,9 @@ public class Loading {
         try (FileInputStream fis = new FileInputStream(pathFile);
              ObjectInputStream ois = new ObjectInputStream(fis)) {
             gameProgress = (GameProgress) ois.readObject();
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
+        } catch (IOException | ClassNotFoundException ex) {
+            System.err.println("Ошибка при загрузке прогресса игры: " + ex.getMessage());
         }
         return gameProgress;
     }
-
-
 }
